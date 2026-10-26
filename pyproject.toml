@@ -1,0 +1,10 @@
+[project]
+name = "ragengi-backend"
+version = "0.3.0"
+description = "Offline CPU-only RAG Engineering Assistant — Backend"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+# Add backend/ to sys.path so `from app.*` imports resolve in all test files.
+pythonpath = ["backend"]
+testpaths = ["backend/tests"]

@@ -1,0 +1,81 @@
+﻿# Python environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Android and Gradle generated files
+.gradle/
+**/build/
+local.properties
+*.jks
+*.keystore
+
+# Android emulator — do not upload emulator data
+android-avd/
+
+# IDE and OS files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Logs and temporary files
+*.log
+*.tmp
+temp/
+tmp/
+
+# ML model files
+*.gguf
+*.safetensors
+*.onnx
+*.pt
+*.pth
+
+# Generated indexes and uploaded/private documents
+backend/storage/
+backend/uploads/
+backend/test_data/
+uploads/
+vector_store/
+
+# Generated reports and benchmark outputs
+backend/reports/
+reports/
+benchmark_outputs/
+
+# Android IDE state and screenshots
+android/.idea/
+android/screenshot.png
+
+# Local scratch data and benchmark outputs
+backend/scratch/
+
+# Temporary screenshots
+/android/screen_actual.png
+/android/screenshot_current.png
+/android/screenshot_final.png
+/android/screenshot.png
+
+# Backup files and folders
+/backend/*.bak
+/backend/**/*.bak
+/backend/backup_*/
+backend/backup_*/
+backend/benchmark_results/
+backend/test_out/
+backend/test_out2/
+backend/scratch/
+
+
+/backend/backup_backend.py

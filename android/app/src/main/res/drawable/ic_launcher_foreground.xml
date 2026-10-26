@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ic_launcher_foreground.xml
+  Adaptive icon foreground layer: uses the real RAGENGI logo PNG.
+  The PNG lives in res/drawable/ragengi_logo.png (1254x1254 original).
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:drawable="@drawable/ragengi_logo"
+        android:gravity="center" />
+</layer-list>

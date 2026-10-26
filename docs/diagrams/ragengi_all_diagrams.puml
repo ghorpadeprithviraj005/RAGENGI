@@ -1,0 +1,580 @@
+@startuml RAGENGI_UseCaseDiagram
+!theme plain
+skinparam backgroundColor #0D1117
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor #161B22
+  BorderColor #58A6FF
+  FontColor #E6EDF3
+  ArrowColor #58A6FF
+}
+skinparam actor {
+  BackgroundColor #58A6FF
+  FontColor #E6EDF3
+}
+skinparam title {
+  FontColor #E6EDF3
+  FontSize 18
+  FontStyle Bold
+}
+
+title RAGENGI — Use Case Diagram
+
+left to right direction
+
+actor "Engineer (User)" as User
+actor "System Admin" as Admin
+
+rectangle "RAGENGI System" {
+
+  package "Document Management" {
+    usecase "Upload PDF Document"           as UC1
+    usecase "View Imported Documents"       as UC2
+    usecase "Delete Document"              as UC3
+    usecase "Re-index Document"            as UC4
+    usecase "Organize into Collections"    as UC5
+    usecase "View Document Statistics"     as UC6
+  }
+
+  package "Question Answering" {
+    usecase "Type Text Query"              as UC7
+    usecase "Ask Voice Query"             as UC8
+    usecase "Receive Structured Answer"   as UC9
+    usecase "View Citations"              as UC10
+    usecase "View Detected Formulas"      as UC11
+    usecase "View Standards Referenced"   as UC12
+    usecase "Filter by Document"          as UC13
+    usecase "Regenerate Answer"           as UC14
+    usecase "Copy Answer"                 as UC15
+  }
+
+  package "Chat History" {
+    usecase "View Previous Chats"         as UC16
+    usecase "Search Chat History"         as UC17
+    usecase "Delete Individual Chat"      as UC18
+    usecase "Delete All Chats"            as UC19
+  }
+
+  package "Settings & Setup" {
+    usecase "Run First-Time Setup Wizard" as UC20
+    usecase "Select LLM Model"           as UC21
+    usecase "Toggle Dark/Light Mode"     as UC22
+    usecase "Manage Storage"             as UC23
+  }
+
+  package "System (Admin)" {
+    usecase "Start FastAPI Backend"      as UC24
+    usecase "Configure Model Path"       as UC25
+    usecase "Monitor FAISS Index"        as UC26
+  }
+}
+
+' User interactions
+User --> UC1
+User --> UC2
+User --> UC3
+User --> UC4
+User --> UC5
+User --> UC6
+User --> UC7
+User --> UC8
+User --> UC9
+User --> UC10
+User --> UC11
+User --> UC12
+User --> UC13
+User --> UC14
+User --> UC15
+User --> UC16
+User --> UC17
+User --> UC18
+User --> UC19
+User --> UC20
+User --> UC21
+User --> UC22
+User --> UC23
+
+' Admin interactions
+Admin --> UC24
+Admin --> UC25
+Admin --> UC26
+
+' Include relationships
+UC7 ..> UC9 : <<include>>
+UC8 ..> UC7 : <<include>>
+UC9 ..> UC10 : <<include>>
+UC9 ..> UC11 : <<extend>>
+UC9 ..> UC12 : <<extend>>
+UC1 ..> UC4 : <<include>>
+
+@enduml
+
+
+@startuml RAGENGI_ClassDiagram
+!theme plain
+skinparam backgroundColor #0D1117
+skinparam class {
+  BackgroundColor #161B22
+  BorderColor #58A6FF
+  FontColor #E6EDF3
+  HeaderBackgroundColor #1F2937
+  HeaderFontColor #58A6FF
+}
+skinparam arrow {
+  Color #58A6FF
+}
+skinparam title {
+  FontColor #E6EDF3
+  FontSize 18
+  FontStyle Bold
+}
+
+title RAGENGI — Class Diagram (Backend)
+
+package "ingestion" #1a2030 {
+  class PDFExtractor {
+    +extract(file_path: str): PDFExtractionResult
+    -_read_page(page): PDFPageResult
+  }
+
+  class OCRService {
+    +dpi: int
+    +language: str
+    +extract_text_from_page(file_path, page_num): str
+  }
+
+  class DocumentIngestionPipeline {
+    -_pdf_extractor: PDFExtractor
+    -_ocr_service: OCRService
+    +process(file_path: str): DocumentExtractionResult
+  }
+
+  class PDFChunker {
+    +chunk_size: int
+    +chunk_overlap: int
+    +chunk_document(result, ...): ChunkingResult
+  }
+}
+
+package "embeddings" #1a2030 {
+  class EmbeddingService {
+    +model_name: str
+    +batch_size: int
+    +device: str
+    -model: SentenceTransformer
+    +generate_embeddings(chunks): List[Dict]
+  }
+}
+
+package "vector_store" #1a2030 {
+  class FaissStore {
+    +index_path: str
+    +dimension: int
+    -index: faiss.Index
+    -metadata_store: Dict[int, Dict]
+    -_current_id: int
+    +add_embeddings(data): void
+    +save_index(): void
+    +load_index(): void
+    +get_metadata(id): Optional[Dict]
+  }
+}
+
+package "retrieval" #1a2030 {
+  class RetrievalService {
+    -embedding_service: EmbeddingService
+    -faiss_store: FaissStore
+    +default_top_k: int
+    +search(query, top_k): List[Dict]
+  }
+}
+
+package "llm" #1a2030 {
+  class LLMService {
+    +model_path: str
+    +context_window: int
+    +max_tokens: int
+    -llm: Llama
+    +build_prompt(query, chunks): str
+    +generate_answer(query, chunks): Dict
+  }
+}
+
+package "intelligence" #1a2030 {
+  class EngineeringAnalyzer {
+    +analyze(text, page_number): EngineeringAnnotation
+  }
+
+  class EngineeringFormatter {
+    +format_answer(raw, annotations, citations): EngineeringAnswer
+  }
+
+  class EngineeringAnnotation {
+    +domain: EngineeringDomain
+    +formulas: List[DetectedFormula]
+    +standards: List[DetectedStandard]
+    +units: List[DetectedUnit]
+    +tables: List[DetectedTable]
+    +references: List[DetectedReference]
+  }
+
+  class EngineeringAnswer {
+    +raw_answer: str
+    +domain: EngineeringDomain
+    +technical_summary: str
+    +formulas: List[str]
+    +standards: List[str]
+    +units: List[str]
+    +figure_references: List[str]
+    +citations: List[Dict]
+    +to_formatted_text(): str
+  }
+
+  enum EngineeringDomain {
+    CIVIL
+    MECHANICAL
+    ELECTRICAL
+    COMPUTER
+    GENERAL
+  }
+}
+
+' Relationships
+DocumentIngestionPipeline --> PDFExtractor : uses
+DocumentIngestionPipeline --> OCRService : uses
+RetrievalService --> EmbeddingService : uses
+RetrievalService --> FaissStore : uses
+EngineeringAnalyzer --> EngineeringAnnotation : produces
+EngineeringFormatter --> EngineeringAnswer : produces
+EngineeringFormatter --> EngineeringAnnotation : consumes
+EngineeringAnnotation --> EngineeringDomain : uses
+
+@enduml
+
+
+@startuml RAGENGI_SequenceDiagram_Ingestion
+!theme plain
+skinparam backgroundColor #0D1117
+skinparam sequence {
+  ActorBackgroundColor #58A6FF
+  ActorFontColor #0D1117
+  ActorBorderColor #58A6FF
+  LifeLineBorderColor #30363D
+  LifeLineBackgroundColor #161B22
+  ParticipantBackgroundColor #161B22
+  ParticipantBorderColor #58A6FF
+  ParticipantFontColor #E6EDF3
+  ArrowColor #58A6FF
+  BoxBackgroundColor #1F2937
+  BoxFontColor #E6EDF3
+}
+skinparam title {
+  FontColor #E6EDF3
+  FontSize 16
+  FontStyle Bold
+}
+
+title RAGENGI — Ingestion Sequence Diagram
+
+actor "User" as U
+participant "Android App" as A
+participant "FastAPI\n/ingest" as API
+participant "PDF\nExtractor" as PDF
+participant "OCR\nService" as OCR
+participant "Chunker" as CH
+participant "Eng.\nAnalyzer" as ENG
+participant "Embedding\nService" as EMB
+participant "FAISS\nStore" as FS
+participant "Room DB" as DB
+
+U -> A : Select PDF file
+A -> API : POST /api/v1/rag/ingest\n{file_path}
+API -> PDF : extract(file_path)
+PDF --> API : PDFExtractionResult\n(pages with has_native_text)
+
+loop For each page
+  alt has_native_text = false
+    API -> OCR : extract_text_from_page(page)
+    OCR --> API : OCR text (Tesseract)
+  end
+end
+
+API -> CH : chunk_document(extraction_result)
+CH --> API : ChunkingResult\nList[Chunk]
+
+loop For each chunk
+  API -> ENG : analyze(chunk_text, page_number)
+  ENG --> API : EngineeringAnnotation\n(domain, formulas, standards...)
+end
+
+API -> EMB : generate_embeddings(chunks)
+EMB --> API : List[{embedding[384], metadata}]
+
+API -> FS : add_embeddings(embeddings_data)
+FS -> FS : index.add(vectors_np)
+FS -> FS : update metadata_store
+
+API -> FS : save_index()
+FS --> API : OK
+
+API --> A : IngestionResponse\n{total_chunks, status: "success"}
+A -> DB : insertDocument(DocumentEntity)
+A --> U : ✓ X chunks indexed
+
+@enduml
+
+
+@startuml RAGENGI_SequenceDiagram_QA
+!theme plain
+skinparam backgroundColor #0D1117
+skinparam sequence {
+  ActorBackgroundColor #58A6FF
+  ActorFontColor #0D1117
+  LifeLineBorderColor #30363D
+  ParticipantBackgroundColor #161B22
+  ParticipantBorderColor #58A6FF
+  ParticipantFontColor #E6EDF3
+  ArrowColor #58A6FF
+}
+skinparam title {
+  FontColor #E6EDF3
+  FontSize 16
+  FontStyle Bold
+}
+
+title RAGENGI — Question Answering Sequence Diagram
+
+actor "User" as U
+participant "Android App\n(ChatViewModel)" as A
+participant "FastAPI\n/ask" as API
+participant "Retrieval\nService" as RET
+participant "Embedding\nService" as EMB
+participant "FAISS\nStore" as FS
+participant "LLM Service\n(llama.cpp)" as LLM
+participant "Eng.\nFormatter" as FMT
+
+U -> A : Type query:\n"Min cover for beams?"
+A -> A : Append UserMessage to StateFlow
+A -> A : Append TypingIndicator
+A -> API : POST /api/v1/rag/ask\n{query, top_k=5}
+
+API -> RET : search(query, top_k=5)
+RET -> EMB : model.encode([query])
+EMB --> RET : query_embedding [float32, 384-dim]
+
+RET -> FS : index.search(query_emb, k=5)
+FS --> RET : distances[5], indices[5]
+
+loop For each valid index (≠ -1)
+  RET -> FS : get_metadata(idx)
+  FS --> RET : {chunk_id, page_number, chunk_text}
+end
+
+RET --> API : List[retrieved_chunks] (Top-5)
+
+API -> LLM : generate_answer(query, chunks)
+LLM -> LLM : build_prompt(query, chunks)\n"Context:\n[P54,C87]...\nQuestion:..."
+LLM -> LLM : llama.cpp inference\n(CPU-only, mmap GGUF)
+LLM --> API : {answer_text, citations}
+
+API -> FMT : format_answer(raw, annotations, citations)
+FMT --> API : EngineeringAnswer\n{domain, summary, formulas, standards, units, refs}
+
+API --> A : QAResponse
+A -> A : Remove TypingIndicator
+A -> A : Append AI ChatMessage
+A --> U : Show EngineeringAnswerCard
+
+@enduml
+
+
+@startuml RAGENGI_DeploymentDiagram
+!theme plain
+skinparam backgroundColor #0D1117
+skinparam node {
+  BackgroundColor #161B22
+  BorderColor #58A6FF
+  FontColor #E6EDF3
+}
+skinparam artifact {
+  BackgroundColor #1F2937
+  BorderColor #3FB950
+  FontColor #E6EDF3
+}
+skinparam database {
+  BackgroundColor #1F2937
+  BorderColor #3FB950
+  FontColor #E6EDF3
+}
+skinparam component {
+  BackgroundColor #161B22
+  BorderColor #58A6FF
+  FontColor #E6EDF3
+}
+skinparam title {
+  FontColor #E6EDF3
+  FontSize 16
+  FontStyle Bold
+}
+
+title RAGENGI — Deployment Diagram
+
+node "📱 Android Device\n(User's Phone/Tablet)" as DEVICE {
+  node "RAGENGI App Process" as APP {
+    component "Jetpack Compose UI" as UI
+    component "ViewModel Layer" as VM
+    component "Repository Layer" as REPO
+    component "Retrofit (HTTP)" as RETRO
+    component "Room DAO" as RDAO
+  }
+
+  database "Internal Storage\n(/filesDir)" as INTSTOR {
+    artifact "llama-2-7b.gguf\n~4 GB" as GGUF_F
+    artifact "all-MiniLM-L6-v2.onnx\n~85 MB" as ONNX_F
+    artifact "vector_store.index\n(FAISS)" as FAISS_F
+    artifact "metadata.json" as META_F
+    artifact "ragengi.db\n(SQLite)" as SQL_F
+  }
+}
+
+node "🖥️ Developer Machine\n(Laptop / Server)" as SERVER {
+  node "Python FastAPI Server\n(Uvicorn :8000)" as API_SRV {
+    component "PDF Extractor" as PDFMOD
+    component "OCR Service" as OCRMOD
+    component "Chunker" as CHMOD
+    component "Embedding Service" as EMBMOD
+    component "FAISS Store" as FMOD
+    component "LLM Service\n(llama.cpp)" as LLMMOD
+    component "Eng. Intelligence" as ENGMOD
+  }
+
+  database "Backend Storage" as BSTOR {
+    artifact "storage/uploads/" as UPLOADS
+    artifact "storage/faiss_index/" as B_FAISS
+    artifact "storage/models/" as B_MODELS
+  }
+}
+
+' Connections
+UI --> VM
+VM --> REPO
+REPO --> RETRO
+REPO --> RDAO
+RDAO --> SQL_F
+RETRO --> API_SRV : HTTP\n(10.0.2.2:8000)
+
+API_SRV --> PDFMOD
+API_SRV --> OCRMOD
+API_SRV --> CHMOD
+API_SRV --> EMBMOD
+API_SRV --> FMOD
+API_SRV --> LLMMOD
+API_SRV --> ENGMOD
+
+FMOD --> B_FAISS
+EMBMOD --> B_MODELS
+PDFMOD --> UPLOADS
+
+note bottom of DEVICE
+  Offline-capable after first setup.
+  All model files cached locally.
+end note
+
+note bottom of SERVER
+  Optional — can be run on the
+  same machine as the emulator.
+end note
+
+@enduml
+
+
+@startuml RAGENGI_ComponentDiagram
+!theme plain
+skinparam backgroundColor #0D1117
+skinparam component {
+  BackgroundColor #161B22
+  BorderColor #58A6FF
+  FontColor #E6EDF3
+}
+skinparam interface {
+  BackgroundColor #1F2937
+  BorderColor #3FB950
+}
+skinparam package {
+  BackgroundColor #0D1117
+  BorderColor #30363D
+  FontColor #8B949E
+}
+skinparam title {
+  FontColor #E6EDF3
+  FontSize 16
+  FontStyle Bold
+}
+skinparam arrow {
+  Color #58A6FF
+}
+
+title RAGENGI — Component Diagram
+
+package "Android Application" {
+  [Jetpack Compose UI] as UI
+  [ChatViewModel] as VM
+  [RagRepository] as RAGR
+  [KnowledgeBaseRepository] as KBR
+  [StorageManager] as SM
+  [Room Database] as ROOM
+  [RagApi (Retrofit)] as API_C
+}
+
+package "FastAPI Backend" {
+  [/api/v1/rag/ingest] as INGEST_EP
+  [/api/v1/rag/ask] as ASK_EP
+  [/api/v1/documents/*] as DOC_EP
+  [DocumentIngestionPipeline] as DIP
+  [EmbeddingService] as ES
+  [FaissStore] as FS
+  [RetrievalService] as RS
+  [LLMService] as LLMS
+  [EngineeringAnalyzer] as EA
+  [EngineeringFormatter] as EF
+}
+
+package "Storage Layer" {
+  database "FAISS Index" as FAISS_DB
+  database "SQLite (Room)" as SQLITE
+  [GGUF Model File] as GGUF
+  [ONNX Embedding Model] as ONNX
+  [metadata.json] as META
+}
+
+' Android internal
+UI --> VM
+VM --> RAGR
+VM --> KBR
+RAGR --> API_C
+KBR --> ROOM
+SM --> GGUF
+SM --> ONNX
+ROOM --> SQLITE
+
+' Android to Backend
+API_C --> INGEST_EP : HTTP POST
+API_C --> ASK_EP : HTTP POST
+
+' Backend ingestion path
+INGEST_EP --> DIP
+DIP --> ES
+DIP --> EA
+ES --> FS
+FS --> FAISS_DB
+FS --> META
+
+' Backend QA path
+ASK_EP --> RS
+RS --> ES
+RS --> FS
+ASK_EP --> LLMS
+ASK_EP --> EF
+LLMS --> GGUF
+
+@enduml
